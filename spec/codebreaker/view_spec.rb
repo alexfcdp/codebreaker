@@ -1,6 +1,6 @@
 require_relative '../spec_helper'
-# require 'simplecov'
-# SimpleCov.start
+require 'simplecov'
+SimpleCov.start
 
 module Codebreaker
   RSpec.describe View do

@@ -7,4 +7,4 @@ gemspec
 
 gem 'rspec', '~> 3.7.0'
 
-# gem 'simplecov', :require => false, :group => :test
+gem 'simplecov', require: false, group: :test
