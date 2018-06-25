@@ -5,6 +5,7 @@ SimpleCov.start
 module Codebreaker
   RSpec.describe Game do
     let(:game) { Game.new }
+    let(:data_processing) { game.data_processing }
 
     before do
       game.start_game
@@ -31,6 +32,11 @@ module Codebreaker
       end
       it 'discards the players code when the game starts' do
         expect(game.instance_variable_get(:@player_code)).to eq('')
+      end
+      it 'transfers a secret code to the GameDataProcessing' do
+        secret_code = game.instance_variable_get(:@secret_code)
+        confidential_code = data_processing.instance_variable_get(:@confidential_code)
+        expect(secret_code).to eq(confidential_code)
       end
     end
 
@@ -62,67 +68,91 @@ module Codebreaker
     end
 
     describe '#guess' do
-      before do
-        game.instance_variable_set(:@secret_code, %w[1 2 6 5])
-      end
-
-      it 'returns the result ++++ when the code is guessed' do
-        game.player_code = '1265'
-        expect(game.guess).to eq(%w[+ + + +])
-      end
-      it 'returns the guessing result if the code does not match' do
-        game.player_code = '4645'
-        expect(game.guess).to eq(['', '-', '', '+'])
-      end
-      it 'returns everything blank when the digits is not in the secret code' do
-        game.player_code = '4444'
-        expect(game.guess).to eq(['', '', '', ''])
-      end
-      it 'returns ---- when all the digits are not in their places' do
-        game.player_code = '6512'
-        expect(game.guess).to eq(%w[- - - -])
-      end
-      it 'passes all the stages of guessing to win' do
-        game.instance_variable_set(:@count_step, 3)
-        game.player_code = '1256'
-        expect(game.guess).to eq(%w[+ + - -])
-        game.player_code = '1265'
-        expect(game.guess).to eq(%w[+ + + +])
-      end
-      it 'returns true, when the code is guessed' do
-        game.player_code = '1265'
-        game.guess
-        expect(game.win?).to eq(true)
-      end
-      it 'returns true when all attempts are exhausted' do
-        game.instance_variable_set(:@count_step, 5)
-        expect(game.loses_game?).to eq(true)
+      context 'get results when the player enters any code' do
+        codes = [
+          { secret_code: %w[2 4 2 6], player_code: '2426', result: %w[+ + + +] },
+          { secret_code: %w[1 1 1 1], player_code: '1111', result: %w[+ + + +] },
+          { secret_code: %w[2 5 3 5], player_code: '2535', result: %w[+ + + +] },
+          { secret_code: %w[2 2 6 6], player_code: '6622', result: %w[- - - -] },
+          { secret_code: %w[6 5 4 3], player_code: '3456', result: %w[- - - -] },
+          { secret_code: %w[2 2 3 4], player_code: '3422', result: %w[- - - -] },
+          { secret_code: %w[1 1 2 3], player_code: '2311', result: %w[- - - -] },
+          { secret_code: %w[2 3 3 3], player_code: '3332', result: %w[- + + -] },
+          { secret_code: %w[5 4 2 3], player_code: '5243', result: %w[+ - - +] },
+          { secret_code: %w[4 4 1 2], player_code: '4142', result: %w[+ - - +] },
+          { secret_code: %w[1 6 5 5], player_code: '5615', result: %w[- + - +] },
+          { secret_code: %w[3 3 1 2], player_code: '3321', result: %w[+ + - -] },
+          { secret_code: %w[4 2 2 4], player_code: '2424', result: %w[- - + +] },
+          { secret_code: %w[6 5 1 2], player_code: '6215', result: %w[+ - + -] },
+          { secret_code: %w[6 6 2 6], player_code: '6646', result: ['+', '+', '', '+'] },
+          { secret_code: %w[2 3 3 2], player_code: '5322', result: ['', '+', '-', '+'] },
+          { secret_code: %w[1 6 6 4], player_code: '6465', result: ['-', '-', '+', ''] },
+          { secret_code: %w[2 5 3 1], player_code: '2365', result: ['+', '-', '', '-'] },
+          { secret_code: %w[5 4 4 1], player_code: '6445', result: ['', '+', '+', '-'] },
+          { secret_code: %w[3 3 1 5], player_code: '5413', result: ['-', '', '+', '-'] },
+          { secret_code: %w[6 6 2 6], player_code: '6263', result: ['+', '-', '-', ''] },
+          { secret_code: %w[2 3 3 2], player_code: '3332', result: ['', '+', '+', '+'] },
+          { secret_code: %w[5 4 2 3], player_code: '1543', result: ['', '-', '-', '+'] },
+          { secret_code: %w[2 2 6 6], player_code: '3242', result: ['', '+', '', '-'] },
+          { secret_code: %w[5 5 5 3], player_code: '5434', result: ['+', '', '-', ''] },
+          { secret_code: %w[3 6 6 3], player_code: '1332', result: ['', '-', '-', ''] },
+          { secret_code: %w[5 4 1 1], player_code: '2314', result: ['', '', '+', '-'] },
+          { secret_code: %w[2 3 3 3], player_code: '3443', result: ['-', '', '', '+'] },
+          { secret_code: %w[3 6 6 6], player_code: '5531', result: ['', '', '-', ''] },
+          { secret_code: %w[5 4 1 1], player_code: '2436', result: ['', '+', '', ''] },
+          { secret_code: %w[2 3 3 3], player_code: '4153', result: ['', '', '', '+'] },
+          { secret_code: %w[2 3 3 3], player_code: '3445', result: ['-', '', '', ''] },
+          { secret_code: %w[2 3 3 3], player_code: '4562', result: ['', '', '', '-'] },
+          { secret_code: %w[6 5 1 2], player_code: '6346', result: ['+', '', '', ''] },
+          { secret_code: %w[6 5 1 2], player_code: '3314', result: ['', '', '+', ''] },
+          { secret_code: %w[6 5 1 2], player_code: '3443', result: ['', '', '', ''] }
+        ]
+        codes.each do |value|
+          it "returns the result #{value[:result]} of guessing the secret code #{value[:secret_code]}" do
+            data_processing.instance_variable_set(:@confidential_code, value[:secret_code])
+            game.player_code = value[:player_code]
+            expect(game.guess).to eq(value[:result])
+          end
+        end
       end
     end
 
     describe '#save_score' do
       let(:filename) { Dir.pwd + '/result.yml' }
       let(:name) { 'mike' }
-      let(:output) { "Win!\nSecret code: ['5', '1', '1', '2']\nYou took steps 1/#{Game::COUNT_MOVES}" }
-      let(:time) { Time.now.strftime('%Y-%m-%d %H:%M') }
-      let(:data) { { 'Name' => name, 'Time' => time, 'Result' => output } }
+      let(:result) { 'Game over!' }
+      let(:count_help) { game.count_help }
+      let(:count_step) { game.instance_variable_set(:@count_step, 5) }
 
-      it 'checks whether the game data is stored in a file' do
+      before do
         File.delete(filename) if File.exist?(filename)
-        game.save_score(name, output)
-        data ||= YAML.safe_load(File.read(filename))
-        expect(data['Result']).to eq(output)
-        expect(data['Name']).to eq(name)
-        expect(data['Time']).to eq(time)
+        data_processing.instance_variable_set(:@result, %w[1 3 5 7])
+        data_processing.game_data(name, result, count_help, count_step)
       end
 
       it 'saves the result of the game to a YAML file' do
-        file = double(File)
-        expect(File).to receive(:open).with(filename, 'a').and_yield(file)
-        expect(file).to receive(:puts).with(data.to_yaml)
-        game.save_score(name, output)
+        data = [data_processing.result_game]
+        expect(File).to receive(:write).with(filename, data.to_yaml)
+        game.save_score
+      end
+
+      it 'checks whether the game data is stored in a file' do
+        time = Time.now.strftime('%Y-%m-%d %H:%M')
+        used_hint = "#{count_help}/#{Game::COUNT_HINT}"
+        took_steps = "#{count_step}/#{Game::COUNT_MOVES}"
+        score = data_processing.send(:score)
+        game.save_score
+        data = YAML.safe_load(File.read(filename))
+        expect(data[0]['Result']).to eq(result)
+        expect(data[0]['Name']).to eq(name)
+        expect(data[0]['Time']).to eq(time)
+        expect(data[0]['Used hint']).to eq(used_hint)
+        expect(data[0]['Took steps']).to eq(took_steps)
+        expect(data[0]['Score']).to eq(score)
+        expect(data[0]['Secret code']).to eq(game.instance_variable_get(:@secret_code).join)
       end
     end
+
     describe '#win?' do
       context 'returns true if the code is guessed, otherwise false' do
         it 'return true' do

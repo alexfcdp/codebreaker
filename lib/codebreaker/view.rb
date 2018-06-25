@@ -1,17 +1,22 @@
 module Codebreaker
   class View
+    PLAYER_NAME = 'Player'.freeze
     def initialize
+      @messages = Messages.new
       @game = Game.new
-      @size = Game::SIZE_SECRET_CODE
-      @result_game = ''
+      @moves_count = Game::COUNT_MOVES
+      view_result_games
     end
 
     def load_game
       player_name
-      print_info
+      @messages.print_info(@name_player)
       @game.start_game
       steps
+      @game.data_preparation(@name_player)
+      message_of_result
       save_result
+      view_result_games
       plays_again
     end
 
@@ -19,7 +24,7 @@ module Codebreaker
 
     def steps
       loop do
-        return message_of_result('Game over!') if @game.loses_game?
+        break if @game.loses_game?
         case @game.player_code = read_input
         when 'q' then exit
         when 'h' then show_hint
@@ -29,38 +34,37 @@ module Codebreaker
     end
 
     def player_name
-      print 'Enter your name: '
-      name = read_input.capitalize
-      @name_player = name == '' ? 'player' : name
-    end
-
-    def print_info
-      puts "Welcome '#{@name_player}' to the game called codebreaker"
-      puts "To exit the game enter 'q' and press enter"
-      puts "To use hint, type 'h' and press enter"
+      @messages.enter_name
+      @name_player = read_input.capitalize
+      @name_player = PLAYER_NAME if @name_player == ''
     end
 
     def guessed?
       if @game.valid?
-        puts "result: #{@game.guess}"
-        return false unless @game.win?
-        message_of_result('Win!')
-        true
+        @messages.guessing_result(@game.guess)
+        remained_attempts_count
+        return true if @game.win?
       else
-        puts "Enter the code from #{@size} numbers from 1 to 6"
+        @messages.invalid_code
       end
+      false
     end
 
     def save_result
-      puts 'Do you want to save the result y/n?'
+      @messages.save_game
       return unless confirm?
-      @game.save_score(@name_player, @result_game)
-      puts 'The result game saved!'
+      @game.save_score
+      @messages.game_saved
     end
 
     def plays_again
-      puts 'Do you still want to play y/n?'
+      @messages.return_game
       confirm? ? load_game : exit
+    end
+
+    def view_result_games
+      @messages.view_games_history
+      @messages.publish_games_history(@game.read_score) if confirm?
     end
 
     def confirm?
@@ -73,16 +77,20 @@ module Codebreaker
 
     def show_hint
       help = @game.hint
-      puts help.nil? ? 'All hints are exhausted' : help
+      help.nil? ? @messages.no_hint : @messages.give_hint(help)
     end
 
     def read_input
       gets.chomp.downcase
     end
 
-    def message_of_result(event)
-      puts @result_game = "#{event}\nSecret code: #{@game.instance_variable_get(:@secret_code)}\n" \
-                          "You took steps #{@game.instance_variable_get(:@count_step)}/#{Game::COUNT_MOVES}"
+    def message_of_result
+      @messages.show_result_game(@game.data_processing.result_game)
+    end
+
+    def remained_attempts_count
+      attempts_count = @moves_count - @game.count_step
+      @messages.show_number_attempts(attempts_count) unless attempts_count.zero? || @game.win?
     end
   end
 end
