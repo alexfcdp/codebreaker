@@ -1,5 +1,6 @@
 require 'codebreaker/messages'
 require 'codebreaker/version'
 require 'codebreaker/game_data_processing'
+require 'codebreaker/game_constants'
 require 'codebreaker/game'
 require 'codebreaker/view'

@@ -28,7 +28,7 @@ module Codebreaker
         game.instance_variable_set(:@data_processing, GameDataProcessing.new(%w[1 3 4 3]))
         game.instance_variable_set(:@count_step, 1)
         view.load_game
-        expect(game.player_code).to eq(['+', '', '-', '-'])
+        expect(game.data_processing.instance_variable_get(:@result_matches)).to eq(['+', '', '-', '-'])
       end
 
       it 'displays the secret numeral when the player enters `h`' do
@@ -67,8 +67,8 @@ module Codebreaker
         name = view.instance_variable_set(:@name_player, 'mike')
         count_help = game.instance_variable_set(:@count_help, 0)
         count_step = game.instance_variable_set(:@count_step, 5)
-        data_processing.instance_variable_set(:@result, %w[+ - + -])
-        data_processing.game_data(name, 'Game over!', count_help, count_step)
+        data_processing.instance_variable_set(:@result_matches, %w[+ - + -])
+        data_processing.game_data(name, 'Lose!', count_help, count_step)
         expect(game).to receive(:save_score)
         view.send(:save_result)
       end

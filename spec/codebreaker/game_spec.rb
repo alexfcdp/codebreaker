@@ -35,7 +35,7 @@ module Codebreaker
       end
       it 'transfers a secret code to the GameDataProcessing' do
         secret_code = game.instance_variable_get(:@secret_code)
-        confidential_code = data_processing.instance_variable_get(:@confidential_code)
+        confidential_code = data_processing.instance_variable_get(:@secret_code)
         expect(secret_code).to eq(confidential_code)
       end
     end
@@ -109,7 +109,7 @@ module Codebreaker
         ]
         codes.each do |value|
           it "returns the result #{value[:result]} of guessing the secret code #{value[:secret_code]}" do
-            data_processing.instance_variable_set(:@confidential_code, value[:secret_code])
+            data_processing.instance_variable_set(:@secret_code, value[:secret_code])
             game.player_code = value[:player_code]
             expect(game.guess).to eq(value[:result])
           end
@@ -126,7 +126,7 @@ module Codebreaker
 
       before do
         File.delete(filename) if File.exist?(filename)
-        data_processing.instance_variable_set(:@result, %w[1 3 5 7])
+        data_processing.instance_variable_set(:@result_matches, %w[1 3 5 7])
         data_processing.game_data(name, result, count_help, count_step)
       end
 
@@ -138,16 +138,16 @@ module Codebreaker
 
       it 'checks whether the game data is stored in a file' do
         time = Time.now.strftime('%Y-%m-%d %H:%M')
-        used_hint = "#{count_help}/#{Game::COUNT_HINT}"
-        took_steps = "#{count_step}/#{Game::COUNT_MOVES}"
+        hint = "#{count_help}/#{Game::COUNT_HINT}"
+        steps = "#{count_step}/#{Game::COUNT_MOVES}"
         score = data_processing.send(:score)
         game.save_score
         data = YAML.safe_load(File.read(filename))
         expect(data[0]['Result']).to eq(result)
         expect(data[0]['Name']).to eq(name)
         expect(data[0]['Time']).to eq(time)
-        expect(data[0]['Used hint']).to eq(used_hint)
-        expect(data[0]['Took steps']).to eq(took_steps)
+        expect(data[0]['Hint']).to eq(hint)
+        expect(data[0]['Steps']).to eq(steps)
         expect(data[0]['Score']).to eq(score)
         expect(data[0]['Secret code']).to eq(game.instance_variable_get(:@secret_code).join)
       end
@@ -156,15 +156,16 @@ module Codebreaker
     describe '#win?' do
       context 'returns true if the code is guessed, otherwise false' do
         it 'return true' do
-          game.player_code = %w[+ + + +]
+          game.data_processing.instance_variable_set(:@result_matches, %w[+ + + +])
           expect(game.win?).to eq(true)
         end
         it 'return false' do
-          game.player_code = %w[+ - + -]
+          game.data_processing.instance_variable_set(:@result_matches, %w[- - - -])
           expect(game.win?).to eq(false)
         end
       end
     end
+
     describe '#loses_game?' do
       context 'returns true if the steps are completed, otherwise false' do
         it 'return true' do

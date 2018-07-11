@@ -1,10 +1,10 @@
 module Codebreaker
   class View
-    PLAYER_NAME = 'Player'.freeze
+    include Codebreaker
+
     def initialize
       @messages = Messages.new
       @game = Game.new
-      @moves_count = Game::COUNT_MOVES
       view_result_games
     end
 
@@ -25,12 +25,21 @@ module Codebreaker
     def steps
       loop do
         break if @game.loses_game?
-        case @game.player_code = read_input
-        when 'q' then exit
-        when 'h' then show_hint
-        else break if guessed?
+        @game.player_code = read_input
+        if options.key?(player_code)
+          options.fetch(player_code).call
+        elsif guessed? then break
         end
       end
+    end
+
+    def options
+      { q: -> { exit },
+        h: -> { show_hint } }
+    end
+
+    def player_code
+      @game.player_code.to_sym
     end
 
     def player_name
@@ -77,7 +86,7 @@ module Codebreaker
 
     def show_hint
       help = @game.hint
-      help.nil? ? @messages.no_hint : @messages.give_hint(help)
+      help ? @messages.give_hint(help) : @messages.no_hint
     end
 
     def read_input
@@ -89,7 +98,7 @@ module Codebreaker
     end
 
     def remained_attempts_count
-      attempts_count = @moves_count - @game.count_step
+      attempts_count = COUNT_MOVES - @game.count_step
       @messages.show_number_attempts(attempts_count) unless attempts_count.zero? || @game.win?
     end
   end

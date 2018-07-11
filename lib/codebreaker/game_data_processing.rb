@@ -1,50 +1,63 @@
 module Codebreaker
   class GameDataProcessing
-    attr_accessor :gamer_code
+    include Codebreaker
+
     attr_reader :result_game
+
     def initialize(secret_code)
-      @confidential_code = secret_code
+      @secret_code = secret_code
       @result_game = {}
+      @result_matches = []
+      @code_conversion = []
     end
 
-    def check_full_match
-      @guessed_code = []
-      @result = []
-      @gamer_code.zip(@confidential_code) do |pl, sec|
-        @result << (pl == sec ? '+' : pl)
-        @guessed_code << (pl == sec ? -1 : sec)
+    def check_matches(player_code)
+      clear_data
+      check_full_matches(player_code.split(''))
+      complete_coincidence? ? @result_matches : check_any_matches
+    end
+
+    def check_full_matches(player_code)
+      player_code.zip(@secret_code) do |gamer_code, privy_code|
+        @result_matches << (gamer_code == privy_code ? EXACT_MATCH : gamer_code)
+        @code_conversion << (gamer_code == privy_code ? -1 : privy_code)
       end
-      @result
     end
 
     def check_any_matches
-      @result.map.with_index do |item, index|
-        if @guessed_code.include?(item)
-          @result[index] = '-'
-          ind_sec_code = @guessed_code.find_index(item)
-          @guessed_code[ind_sec_code] = -1
-        elsif item != '+'
-          @result[index] = ''
+      @result_matches.map! do |item|
+        if @code_conversion.include?(item)
+          @code_conversion[@code_conversion.find_index(item)] = -1
+          NUMERICAL_MATCH
+        else
+          item == EXACT_MATCH ? EXACT_MATCH : NO_MATCHES
         end
       end
-      @result
+    end
+
+    def complete_coincidence?
+      @result_matches.count(EXACT_MATCH) == SIZE_SECRET_CODE
     end
 
     def game_data(name, event, count_help, count_step)
       time = Time.now.strftime('%Y-%m-%d %H:%M')
-      used_hint = "#{count_help}/#{Game::COUNT_HINT}"
-      took_steps = "#{count_step}/#{Game::COUNT_MOVES}"
+      hint = "#{count_help}/#{COUNT_HINT}"
+      steps = "#{count_step}/#{COUNT_MOVES}"
       @result_game = { 'Name' => name, 'Time' => time, 'Result' => event, 'Score' => score, \
-                       'Used hint' => used_hint, 'Took steps' => took_steps, 'Secret code' => @confidential_code.join }
+                       'Hint' => hint, 'Steps' => steps, 'Secret code' => @secret_code.join }
     end
 
     private
 
     def score
-      points = { '+' => 25, '-' => 15 }
       account = 0
-      points.each { |key, value| account += @result.count(key) * value }
+      POINTS.each { |key, value| account += @result_matches.count(key) * value }
       account
+    end
+
+    def clear_data
+      @result_matches.clear
+      @code_conversion.clear
     end
   end
 end

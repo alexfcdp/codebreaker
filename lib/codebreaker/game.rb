@@ -1,11 +1,12 @@
 require 'yaml'
+
 module Codebreaker
   class Game
-    SIZE_SECRET_CODE = 4
-    COUNT_HINT = 1
-    COUNT_MOVES = 5
+    include Codebreaker
+
     attr_accessor :player_code
     attr_reader :count_help, :count_step, :data_processing
+
     def initialize
       @secret_code = Array.new(SIZE_SECRET_CODE)
       @file_path = File.expand_path('../../result.yml', __dir__)
@@ -31,13 +32,11 @@ module Codebreaker
 
     def guess
       @count_step += 1
-      @data_processing.gamer_code = @player_code.split('')
-      @player_code = @data_processing.check_full_match
-      win? ? @player_code : @data_processing.check_any_matches
+      @data_processing.check_matches(@player_code)
     end
 
     def save_score
-      return if @data_processing.result_game.nil?
+      return unless @data_processing.result_game
       data = read_score || []
       data << @data_processing.result_game
       File.write(@file_path, data.to_yaml)
@@ -48,12 +47,12 @@ module Codebreaker
     end
 
     def data_preparation(name)
-      event = win? ? 'Win!' : 'Game over!'
+      event = win? ? WON : LOST
       @data_processing.game_data(name, event, @count_help, @count_step)
     end
 
     def win?
-      @player_code.count('+') == SIZE_SECRET_CODE
+      @data_processing.complete_coincidence?
     end
 
     def loses_game?

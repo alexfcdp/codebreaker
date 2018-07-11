@@ -1,5 +1,7 @@
 module Codebreaker
   class Messages
+    include Codebreaker
+
     def enter_name
       print 'Enter your name: '
     end
@@ -15,7 +17,7 @@ module Codebreaker
     end
 
     def no_hint
-      puts 'All hints are exhausted'
+      puts NO_HINT
     end
 
     def guessing_result(output)
@@ -23,11 +25,11 @@ module Codebreaker
     end
 
     def invalid_code
-      puts "Enter the code from #{Game::SIZE_SECRET_CODE} numbers from 1 to 6"
+      puts INPUT_CONDITION
     end
 
     def show_result_game(output)
-      puts('*' * 40).to_s
+      puts DELIMITER
       output.each { |key, value| puts "#{key}: #{value}" }
     end
 
@@ -44,7 +46,7 @@ module Codebreaker
     end
 
     def show_number_attempts(count)
-      puts "You have #{count}/#{Game::COUNT_MOVES} attempts"
+      puts "You have #{count}/#{COUNT_MOVES} attempts"
     end
 
     def view_games_history
@@ -52,12 +54,10 @@ module Codebreaker
     end
 
     def publish_games_history(history_game)
-      if history_game.nil? then puts 'The file is missing or corrupted'
-      else
-        history_game.each do |result|
-          result.each { |key, value| puts "#{key}: #{value}" }
-          puts('-' * 40).to_s
-        end
+      return puts 'The file is missing or corrupted' unless history_game
+      history_game.each do |result|
+        result.each { |key, value| puts "#{key}: #{value}" }
+        puts DELIMITER
       end
     end
   end
